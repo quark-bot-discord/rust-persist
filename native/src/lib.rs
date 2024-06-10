@@ -29,8 +29,12 @@ fn setItem(mut cx: FunctionContext) -> JsResult<JsBoolean> {
     let value = cx
         .argument::<JsString>(1)?
         .value();
+    let ttl = cx
+        .argument::<JsNumber>(2)?
+        .value();
     println!("KEY {}", key);
     println!("VALUE {}", value);
+    println!("TTL {}", ttl);
 
     let currentTimestamp: u32 = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -48,20 +52,49 @@ fn setItem(mut cx: FunctionContext) -> JsResult<JsBoolean> {
         let newData = StorageData {
             key: Some(key),
             value: Some(value),
-            expiry: Some(currentTimestamp),
+            expiry: Some(currentTimestamp + ttl as u32),
             ..Default::default()
         }.insert();
     } else {
         println!("EXISTS");
         // Row exists, update it
-        storedData.expiry = Some(currentTimestamp);
+        storedData.expiry = Some(currentTimestamp + ttl as u32);
+        storedData.value = Some(value);
         storedData.update();
     }
     Ok(cx.boolean(true))
 }
 
+fn getItem(mut cx: FunctionContext) -> JsResult<JsString> {
+    let key = cx
+        .argument::<JsString>(0)?
+        .value();
+    let currentTimestamp: u32 = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as u32;
+
+    let storedData = match select!(StorageData "WHERE key = ?", key) {
+        Ok(data) => data,
+        Err(_) => StorageData::default(),
+    };
+
+    if storedData.rowid.is_none() {
+        return Ok(cx.string(""));
+    }
+
+    if storedData.expiry.is_some() && storedData.expiry.unwrap() < currentTimestamp {
+        // Expired
+        storedData.delete();
+        return Ok(cx.string(""));
+    }
+
+    Ok(cx.string(storedData.value.unwrap()))
+}
+
 register_module!(mut cx, {
     cx.export_function("hello", hello);
     cx.export_function("setItem", setItem);
+    cx.export_function("getItem", getItem);
     Ok(())
 });
