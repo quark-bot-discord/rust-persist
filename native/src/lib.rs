@@ -79,6 +79,23 @@ fn getItem(mut cx: FunctionContext) -> JsResult<JsString> {
     Ok(cx.string(storedData.value.unwrap()))
 }
 
+fn removeItem(mut cx: FunctionContext) -> JsResult<JsUndefined> {
+    let key = cx
+        .argument::<JsString>(0)?
+        .value();
+
+    let storedData = match select!(StorageData "WHERE key = ?", key) {
+        Ok(data) => data,
+        Err(_) => StorageData::default(),
+    };
+
+    if storedData.rowid.is_some() {
+        storedData.delete();
+    }
+
+    Ok(cx.undefined())
+}
+
 fn deleteExpiredItems(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     let currentTimestamp: u32 = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -94,5 +111,6 @@ register_module!(mut cx, {
     cx.export_function("setItem", setItem);
     cx.export_function("getItem", getItem);
     cx.export_function("deleteExpiredItems", deleteExpiredItems);
+    cx.export_function("removeItem", removeItem);
     Ok(())
 });
