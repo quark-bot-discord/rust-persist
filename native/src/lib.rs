@@ -28,9 +28,6 @@ fn setItem(mut cx: FunctionContext) -> JsResult<JsBoolean> {
     let ttl = cx
         .argument::<JsNumber>(2)?
         .value();
-    println!("KEY {}", key);
-    println!("VALUE {}", value);
-    println!("TTL {}", ttl);
 
     let currentTimestamp: u32 = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -43,8 +40,6 @@ fn setItem(mut cx: FunctionContext) -> JsResult<JsBoolean> {
     };
 
     if storedData.rowid.is_none() {
-        println!("DOESNT EXIST");
-        // Row doesn't exist, insert a new one
         let newData = StorageData {
             key: Some(key),
             value: Some(value),
@@ -52,8 +47,6 @@ fn setItem(mut cx: FunctionContext) -> JsResult<JsBoolean> {
             ..Default::default()
         }.insert();
     } else {
-        println!("EXISTS");
-        // Row exists, update it
         storedData.expiry = Some(currentTimestamp + ttl as u32);
         storedData.value = Some(value);
         storedData.update();
