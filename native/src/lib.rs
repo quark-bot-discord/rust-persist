@@ -5,9 +5,7 @@ use turbosql::{Turbosql, select, execute};
 #[derive(Turbosql, Default)]
 struct BucketData {
     rowid: Option<i64>, // rowid member required & enforced at compile time
-    key: Option<String>,
-    age: Option<i64>,
-    image_jpg: Option<Vec<u8>>
+    key: Option<String>
 }
 
 #[derive(Turbosql, Default)]
@@ -81,8 +79,20 @@ fn getItem(mut cx: FunctionContext) -> JsResult<JsString> {
     Ok(cx.string(storedData.value.unwrap()))
 }
 
+fn deleteExpiredItems(mut cx: FunctionContext) -> JsResult<JsUndefined> {
+    let currentTimestamp: u32 = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as u32;
+
+    let _ = execute!("DELETE FROM StorageData WHERE expiry < ?", currentTimestamp);
+
+    Ok(cx.undefined())
+}
+
 register_module!(mut cx, {
     cx.export_function("setItem", setItem);
     cx.export_function("getItem", getItem);
+    cx.export_function("deleteExpiredItems", deleteExpiredItems);
     Ok(())
 });
