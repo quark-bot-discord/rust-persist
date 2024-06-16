@@ -1,6 +1,11 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 use neon::prelude::*;
 use turbosql::{Turbosql, select, execute};
+use std::sync::Mutex;
+
+lazy_static! {
+    static ref MUTEX: Mutex<()> = Mutex::new(());
+}
 
 #[derive(Turbosql, Default)]
 struct BucketData {

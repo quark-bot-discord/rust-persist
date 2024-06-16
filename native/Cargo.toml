@@ -17,3 +17,4 @@ neon-build = "0.10.1"
 [dependencies]
 neon = "0.10.1"
 turbosql = "0.10.0"
+lazy_static = "1.4.0"
